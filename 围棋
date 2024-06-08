@@ -1,0 +1,109 @@
+# 导入必要的模块
+import numpy as np
+
+# 定义棋盘大小
+BOARD_SIZE = 9
+
+# 定义棋盘状态
+EMPTY = 0
+BLACK = 1
+WHITE = 2
+
+# 定义棋盘类
+class Board:
+    def __init__(self):
+        self.board = np.zeros((BOARD_SIZE, BOARD_SIZE), dtype=int)
+
+    def get_board(self):
+        return self.board
+
+    def is_valid_move(self, move, color):
+        row, col = move
+        if row < 0 or row >= BOARD_SIZE or col < 0 or col >= BOARD_SIZE:
+            return False
+        if self.board[row][col] != EMPTY:
+            return False
+        return True
+
+    def make_move(self, move, color):
+        if self.is_valid_move(move, color):
+            row, col = move
+            self.board[row][col] = color
+            return True
+        return False
+
+    def get_neighbors(self, row, col):
+        neighbors = []
+        if row > 0:
+            neighbors.append((row - 1, col))
+        if row < BOARD_SIZE - 1:
+            neighbors.append((row + 1, col))
+        if col > 0:
+            neighbors.append((row, col - 1))
+        if col < BOARD_SIZE - 1:
+            neighbors.append((row, col + 1))
+        return neighbors
+
+    def remove_group(self, row, col, color):
+        if self.board[row][col] == EMPTY or self.board[row][col] != color:
+            return
+        self.board[row][col] = EMPTY
+        neighbors = self.get_neighbors(row, col)
+        for neighbor in neighbors:
+            self.remove_group(neighbor[0], neighbor[1], color)
+
+    def capture_opponent(self, move, color):
+        row, col = move
+        opponent_color = BLACK if color == WHITE else WHITE
+        neighbors = self.get_neighbors(row, col)
+        for neighbor in neighbors:
+            if self.board[neighbor[0]][neighbor[1]] == opponent_color:
+                group = self.get_group(neighbor[0], neighbor[1], opponent_color)
+                if self.is_group_captured(group):
+                    for stone in group:
+                        self.remove_group(stone[0], stone[1], opponent_color)
+
+    def get_group(self, row, col, color):
+        stack = [(row, col)]
+        group = set()
+        while stack:
+            stone = stack.pop()
+            group.add(stone)
+            neighbors = self.get_neighbors(stone[0], stone[1])
+            for neighbor in neighbors:
+                if self.board[neighbor[0]][neighbor[1]] == color and neighbor not in group:
+                    stack.append(neighbor)
+        return group
+
+    def is_group_captured(self, group):
+        for stone in group:
+            neighbors = self.get_neighbors(stone[0], stone[1])
+            for neighbor in neighbors:
+                if self.board[neighbor[0]][neighbor[1]] == EMPTY:
+                    return False
+        return True
+
+    def print_board(self):
+        for row in self.board:
+            print(row)
+
+# 主程序
+def main():
+    board = Board()
+    current_color = BLACK
+
+    while True:
+        board.print_board()
+        print("Current player:", "Black" if current_color == BLACK else "White")
+        move = input("Enter your move (row,col): ")
+        move = move.split(",")
+        move = (int(move[0]), int(move[1]))
+
+        if board.make_move(move, current_color):
+            board.capture_opponent(move, current_color)
+            current_color = WHITE if current_color == BLACK else BLACK
+        else:
+            print("Invalid move. Try again.")
+
+if __name__ == "__main__":
+    main()
